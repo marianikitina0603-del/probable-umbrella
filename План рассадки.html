@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивный план рассадки</title>
+    <style>
+        :root {
+            --bg-grid: #eef2f5;
+            --main-bg: #e5eff2;
+            --desk-bg: #ffffff;
+            --border-color: #5c7080;
+            --accent-color: #4361ee;
+            --error-color: #ef4444;
+            --error-bg: #fee2e2;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f8fafc;
+            background-image: 
+                linear-gradient(to right, rgba(200,210,220,0.3) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(200,210,220,0.3) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #2b2d42;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Панель управления */
+        .controls-panel {
+            width: 320px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            height: fit-content;
+            flex-shrink: 0;
+        }
+
+        .controls-panel h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #1e293b;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #475569;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-group textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        .row-config {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary { background: #4361ee; color: white; }
+        .btn-primary:hover { background: #3751d7; }
+        
+        .btn-secondary { background: #64748b; color: white; }
+        .btn-secondary:hover { background: #475569; }
+
+        .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #334155; }
+        .btn-outline:hover { background: #f8fafc; }
+
+        /* Область листа */
+        .sheet {
+            flex: 1;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            background-image: 
+                linear-gradient(to right, rgba(200,210,220,0.2) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(200,210,220,0.2) 1px, transparent 1px);
+            background-size: 15px 15px;
+            min-width: 800px;
+        }
+
+        .header-layout {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .title-block h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
+        .title-block h2 {
+            margin: -5px 0 0 10px;
+            font-size: 2rem;
+            font-family: 'Brush Script MT', cursive, sans-serif;
+            color: #2b2d42;
+            font-weight: normal;
+        }
+
+        .info-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 250px;
+        }
+
+        .info-field {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-field span {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #4a5568;
+            width: 70px;
+        }
+
+        .info-field input {
+            flex: 1;
+            border: 1px solid #718096;
+            border-radius: 15px;
+            padding: 4px 12px;
+            outline: none;
+            background: transparent;
+        }
+
+        /* Классная комната */
+        .classroom {
+            background-color: var(--main-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 550px;
+            position: relative;
+        }
+
+        .teacher-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .board {
+            height: 8px;
+            background: #718096;
+            border-radius: 4px;
+            width: 40%;
+            margin: 0 auto;
+        }
+
+        .teacher-desk {
+            width: 160px;
+            height: 50px;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: #718096;
+            font-weight: 600;
+        }
+
+        .teacher-chair {
+            position: absolute;
+            top: -12px;
+            width: 45px;
+            height: 12px;
+            border: 2px solid var(--border-color);
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            background: white;
+        }
+
+        /* Сетка парт */
+        .rows-container {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex: 1;
+            align-items: center;
+        }
+
+        .desk-group {
+            display: flex;
+            gap: 10px;
+            background: transparent;
+        }
+
+        /* Увеличенная длина (ширина) ячеек мест */
+        .seat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 140px; /* Длина ячейки под полноценные ФИО */
+        }
+
+        .desk {
+            width: 100%;
+            height: 45px;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+
+        .desk select {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+            font-size: 0.85rem;
+            text-align: center;
+            text-align-last: center;
+            cursor: pointer;
+            outline: none;
+            color: #1e293b;
+            font-weight: 500;
+            text-overflow: ellipsis;
+            border-radius: 6px;
+        }
+
+        .chair {
+            width: 50px;
+            height: 12px;
+            border: 2px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            background: white;
+            margin-top: -2px;
+            transition: all 0.2s ease;
+        }
+
+        /* Стиль для подсвечивания дубликатов */
+        .seat-box.duplicate .desk {
+            background-color: var(--error-bg);
+            border-color: var(--error-color);
+        }
+
+        .seat-box.duplicate .chair {
+            border-color: var(--error-color);
+        }
+
+        .seat-box.duplicate select {
+            color: var(--error-color);
+            font-weight: 700;
+        }
+
+        /* Настройки печати - АЛЬБОМНАЯ ОРИЕНТАЦИЯ */
+        @page {
+            size: landscape;
+            margin: 8mm;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                max-width: 100%;
+            }
+            .controls-panel {
+                display: none;
+            }
+            .sheet {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+                min-width: unset;
+                background-image: none;
+            }
+            .desk select {
+                appearance: none;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+            }
+            .info-field input {
+                border-bottom: 1px solid #718096;
+                border-top: none;
+                border-left: none;
+                border-right: none;
+                border-radius: 0;
+            }
+            .seat-box.duplicate .desk {
+                background-color: #fee2e2 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Панель управления -->
+    <div class="controls-panel">
+        <h2>Настройки рассадки</h2>
+        
+        <div class="form-group">
+            <label>Количество парт в рядах (1-6):</label>
+            <div class="row-config">
+                <div>
+                    <label style="font-weight:normal">Ряд 1</label>
+                    <input type="number" id="rowsCol1" min="1" max="6" value="5" onchange="buildClassroom()">
+                </div>
+                <div>
+                    <label style="font-weight:normal">Ряд 2</label>
+                    <input type="number" id="rowsCol2" min="1" max="6" value="5" onchange="buildClassroom()">
+                </div>
+                <div>
+                    <label style="font-weight:normal">Ряд 3</label>
+                    <input type="number" id="rowsCol3" min="1" max="6" value="5" onchange="buildClassroom()">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="studentList">Список учеников (каждый с новой строки):</label>
+            <textarea id="studentList" placeholder="Иванов Иван&#10;Петров Пётр&#10;Сидорова Анна" oninput="updateStudentDropdowns()"></textarea>
+            <small style="color: #64748b; font-size: 0.75rem;">Всего в списке: <span id="studentCount">0</span></small>
+        </div>
+
+        <button class="btn btn-primary" onclick="autoAssign()">Заполнить случайно</button>
+        <button class="btn btn-outline" onclick="clearSeating()">Очистить рассадку</button>
+        <button class="btn btn-secondary" onclick="window.print()">Распечатать / Сохранить PDF</button>
+    </div>
+
+    <!-- Область плана -->
+    <div class="sheet">
+        <div class="header-layout">
+            <div class="title-block">
+                <h1>ПЛАН</h1>
+                <h2>рассадки</h2>
+            </div>
+            <div class="info-fields">
+                <div class="info-field">
+                    <span>Класс</span>
+                    <input type="text">
+                </div>
+                <div class="info-field">
+                    <span>Предмет</span>
+                    <input type="text">
+                </div>
+                <div class="info-field">
+                    <span>Кабинет</span>
+                    <input type="text">
+                </div>
+            </div>
+        </div>
+
+        <div class="classroom">
+            <div class="teacher-area">
+                <div class="teacher-desk">
+                    <div class="teacher-chair"></div>
+                    Стол учителя
+                </div>
+                <div class="board"></div>
+                <div style="width: 160px;"></div>
+            </div>
+
+            <div class="rows-container" id="classroomGrid">
+                <!-- Ряды генерируются через JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getStudents() {
+        const text = document.getElementById('studentList').value;
+        return text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    function buildClassroom() {
+        const grid = document.getElementById('classroomGrid');
+        grid.innerHTML = '';
+
+        const colCounts = [
+            parseInt(document.getElementById('rowsCol1').value) || 0,
+            parseInt(document.getElementById('rowsCol2').value) || 0,
+            parseInt(document.getElementById('rowsCol3').value) || 0
+        ];
+
+        colCounts.forEach((deskCount, colIndex) => {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'column';
+
+            for (let i = 0; i < deskCount; i++) {
+                const deskGroup = document.createElement('div');
+                deskGroup.className = 'desk-group';
+
+                for (let seat = 1; seat <= 2; seat++) {
+                    const seatBox = document.createElement('div');
+                    seatBox.className = 'seat-box';
+
+                    const desk = document.createElement('div');
+                    desk.className = 'desk';
+
+                    const select = document.createElement('select');
+                    select.className = 'student-select';
+                    select.addEventListener('change', checkDuplicates);
+
+                    desk.appendChild(select);
+
+                    const chair = document.createElement('div');
+                    chair.className = 'chair';
+
+                    seatBox.appendChild(desk);
+                    seatBox.appendChild(chair);
+                    deskGroup.appendChild(seatBox);
+                }
+
+                colDiv.appendChild(deskGroup);
+            }
+
+            grid.appendChild(colDiv);
+        });
+
+        updateStudentDropdowns();
+    }
+
+    function updateStudentDropdowns() {
+        const students = getStudents();
+        document.getElementById('studentCount').innerText = students.length;
+
+        const selects = document.querySelectorAll('.student-select');
+        
+        selects.forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">—</option>';
+
+            students.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student;
+                option.textContent = student;
+                select.appendChild(option);
+            });
+
+            if (students.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        });
+
+        checkDuplicates();
+    }
+
+    function checkDuplicates() {
+        const selects = document.querySelectorAll('.student-select');
+        const counts = {};
+
+        selects.forEach(select => {
+            const val = select.value;
+            if (val) {
+                counts[val] = (counts[val] || 0) + 1;
+            }
+        });
+
+        selects.forEach(select => {
+            const seatBox = select.closest('.seat-box');
+            const val = select.value;
+
+            if (val && counts[val] > 1) {
+                seatBox.classList.add('duplicate');
+            } else {
+                seatBox.classList.remove('duplicate');
+            }
+        });
+    }
+
+    function autoAssign() {
+        const students = [...getStudents()];
+        
+        for (let i = students.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [students[i], students[j]] = [students[j], students[i]];
+        }
+
+        const selects = document.querySelectorAll('.student-select');
+        clearSeating();
+
+        selects.forEach((select, index) => {
+            if (index < students.length) {
+                select.value = students[index];
+            }
+        });
+
+        checkDuplicates();
+    }
+
+    function clearSeating() {
+        const selects = document.querySelectorAll('.student-select');
+        selects.forEach(select => select.value = '');
+        checkDuplicates();
+    }
+
+    window.onload = () => {
+        buildClassroom();
+    };
+</script>
+
+</body>
+</html>
